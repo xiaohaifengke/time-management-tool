@@ -1,0 +1,30 @@
+$html-rem: 100vw / (1920 / 100);
+$global-color: #000;
+$body-bgc: #f1f2f6;
+$content-bgc: #fff;
+
+/* ********** global begin ********** */
+
+$color-light: #999;
+$color-normal: #333;
+$color-primary: #00a291;
+$color-secondary: #01d3bd;
+
+$bgc-color-primary: #fff;
+
+/* ********** global end ********** */
+
+/* ********** header begin ********** */
+
+$app-title-color: $color-primary;
+
+/* ********** header end ********** */
+
+/* ********** dashboard begin ********** */
+
+$text-color-light: $color-light;
+$text-color-normal: $color-normal;
+
+$border-color-normal: #eee;
+
+/* ********** dashboard end ********** */

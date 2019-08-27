@@ -1,0 +1,65 @@
+$dashboard-header-height: 1rem;
+$dashboard-header-min-height: 0.5rem;
+.dashboard {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  .header {
+    width: 100%;
+    min-height: $dashboard-header-min-height;
+    height: $dashboard-header-height;
+    line-height: $dashboard-header-height;
+    color: $app-title-color;
+    background-color: $content-bgc;
+    box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.16);
+    .title {
+      margin-left: 0.46rem;
+      font: {
+        size: 0.48rem;
+      }
+    }
+
+    .descr {
+      vertical-align: middle;
+      margin-left: 0.26rem;
+      font-size: 0.16rem;
+    }
+  }
+
+  .container {
+    flex-grow: 1;
+    margin: 0.28rem 0.24rem 0.52rem;
+    padding: 15px;
+    height: 100px;
+    background-color: $content-bgc;
+    border-radius: 12px;
+
+    .content-title {
+      margin-bottom: 0.24rem;
+      padding-bottom: 0.26rem;
+      font-size: 0;
+      border-bottom: 1px solid $color-secondary;
+
+      .tasks-title {
+        font-size: 32px;
+        color: $color-normal;
+      }
+
+      .category {
+        font-size: 20px;
+        color: rgba(153, 153, 153, 1);
+        cursor: pointer;
+        margin-left: 0.25rem;
+
+        &.active {
+          color: $color-primary;
+        }
+      }
+
+      .actions {
+        float: right;
+        margin-top: 10px;
+      }
+    }
+  }
+}
