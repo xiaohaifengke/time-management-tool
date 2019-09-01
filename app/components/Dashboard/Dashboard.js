@@ -14,9 +14,26 @@ export default class Dashboard extends Component<Props> {
     return (
       <div className={styles.dashboard}>
         <header className={styles.header}>
-          <p>
-            <span className={styles.title}>倒计时管理</span>
-            <i className={styles.descr}>超好用的任务管理神器</i>
+          <p style={{height: '100%'}}>
+            {/* <span className={`${styles.title} `}>timer</span> */}
+            <svg width="220" height="50">
+              <text textAnchor="middle" x="50%" y="86%" className={`${styles.title}`}>
+                timer
+              </text>
+              <text textAnchor="middle" x="50%" y="86%" className={`${styles.title} ${styles.title1}`}>
+                timer
+              </text>
+              <text textAnchor="middle" x="50%" y="86%" className={`${styles.title} ${styles.title2}`}>
+                timer
+              </text>
+              <text textAnchor="middle" x="50%" y="86%" className={`${styles.title} ${styles.title3}`}>
+                timer
+              </text>
+              <text textAnchor="middle" x="50%" y="86%" className={`${styles.title} ${styles.title4}`}>
+                timer
+              </text>
+            </svg>
+            <i className={styles.descr}>欢迎使用倒计时管理工具 timer</i>
           </p>
         </header>
 

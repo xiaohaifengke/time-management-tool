@@ -106,6 +106,19 @@ button {
   background-color: transparent;
 }
 
+
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
 // 文本超出显示省略号
 .text-ellipsis {
   overflow: hidden;

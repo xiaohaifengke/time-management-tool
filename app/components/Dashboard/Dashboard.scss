@@ -1,5 +1,12 @@
 $dashboard-header-height: 1rem;
 $dashboard-header-min-height: 0.5rem;
+
+@keyframes stroke {
+  100% {
+    stroke-dashoffset: -400;
+  }
+}
+
 .dashboard {
   display: flex;
   height: 100%;
@@ -7,22 +14,49 @@ $dashboard-header-min-height: 0.5rem;
   .header {
     width: 100%;
     min-height: $dashboard-header-min-height;
-    height: $dashboard-header-height;
+    // height: $dashboard-header-height;
+    height: 50px;
     line-height: $dashboard-header-height;
     color: $app-title-color;
     background-color: $content-bgc;
     box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.16);
     .title {
       margin-left: 0.46rem;
-      font: {
-        size: 0.48rem;
-      }
+      // font-size: 0.48rem;
+      font-size: 50px;
+      font-weight: bold;
+      text-transform: uppercase;
+      fill: none;
+      stroke-width: 2px;
+      stroke-dasharray: 90 310;
+      animation: stroke 6s infinite linear;
+    }
+    .title1 {
+      stroke: $color-primary;
+      text-shadow: 0 0 2px $color-primary;
+      animation-delay: -1.5s;
+    }
+    .title2 {
+      stroke: $color-warning;
+      text-shadow: 0 0 2px $color-warning;
+      animation-delay: -3s;
+    }
+    .title3 {
+      stroke: $color-secondary;
+      text-shadow: 0 0 2px $color-secondary;
+      animation-delay: -4.5s;
+    }
+    .title4 {
+      stroke: #3498db;
+      text-shadow: 0 0 2px #3498db;
+      animation-delay: -6s;
     }
 
     .descr {
-      vertical-align: middle;
-      margin-left: 0.26rem;
-      font-size: 0.16rem;
+      vertical-align: super;
+      //margin-left: 26px;
+      //font-size: 0.16rem;
+      font-size: 16px;
     }
   }
 
