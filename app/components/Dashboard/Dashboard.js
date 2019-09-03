@@ -5,6 +5,7 @@ import React, { Component } from 'react';
 import { Button, Icon, Modal, Tabs, Form, DatePicker, Input } from 'antd';
 import styles from './Dashboard.scss';
 import TimerCard from './components/TimerCard/TimerCard';
+import DayHourMinSecInput from './components/DayHourMinSecInput/DayHourMinSecInput'
 
 type Props = {};
 
@@ -20,6 +21,13 @@ const CollectionCreateForm = Form.create()(
   (props) => {
     const { visible, onCancel, onCreate, form } = props;
     const { getFieldDecorator } = form;
+    const checkDuration = (rule, value, callback) => {
+      if (value.days || value.hours || value.minutes || value.seconds) {
+        callback();
+        return;
+      }
+      callback('请输入时长'); // 任务时间必须大于0秒
+    }
     return (
       <Modal
         visible={visible}
@@ -31,15 +39,23 @@ const CollectionCreateForm = Form.create()(
         <Tabs defaultActiveKey="1">
           <TabPane tab="根据截止时间添加" key="1">
             <Form layout="horizontal">
-              <FormItem label="Title" {...formItemLayout}>
+              <FormItem label="任务名称" {...formItemLayout}>
                 {getFieldDecorator('title', {
                   rules: [{ required: true, message: 'Please input the title of collection!' }]
                 })(
                   <Input/>
                 )}
               </FormItem>
-              <FormItem label="Description" {...formItemLayout}>
-                {getFieldDecorator('description')(<Input type="textarea"/>)}
+              <FormItem label="截止时间" {...formItemLayout}>
+                {getFieldDecorator('date-time-picker', {
+                  rules: [{ type: 'object', required: true, message: '请选择任务截止时间！' }],
+                })(
+                  <DatePicker style={{width: '100%'}} showTime format="YYYY-MM-DD HH:mm:ss"/>
+                )}
+              </FormItem>
+              <FormItem label="">
+                {getFieldDecorator('description')(
+                  <TextArea placeholder="在此处按2019-09-03 09:59:59或20190903095959或190903095959格式输入时间，可自动提取" autosize={{ minRows: 2, maxRows: 6 }}/>)}
               </FormItem>
             </Form>
           </TabPane>
@@ -52,14 +68,13 @@ const CollectionCreateForm = Form.create()(
                   <Input/>
                 )}
               </FormItem>
-              <FormItem label="截止时间" {...formItemLayout}>
-                {getFieldDecorator('date-time-picker', {
-                  rules: [{ type: 'object', required: true, message: '请选择任务截止时间！' }],
-                })(
-                  <DatePicker style={{width: '100%'}} showTime format="YYYY-MM-DD HH:mm:ss"/>
-                )}
+              <FormItem label="任务时长" {...formItemLayout}>
+                {getFieldDecorator('value', {
+                  initialValue: { days: '', hours: '', minutes: '', seconds: '' },
+                  rules: [{ required: true, validator: checkDuration }],
+                })(<DayHourMinSecInput />)}
               </FormItem>
-              <FormItem label="Description" {...formItemLayout}>
+              <FormItem label="">
                 {getFieldDecorator('description')(
                   <TextArea placeholder="在此处按000000格式输入时间，可自动提取" autosize={{ minRows: 2, maxRows: 6 }}/>)}
               </FormItem>
@@ -89,6 +104,7 @@ export default class Dashboard extends Component<Props> {
   handleCreate = () => {
     const { form } = this;
     form.validateFields((err, values) => {
+      console.log(values);
       if (err) {
         return;
       }
