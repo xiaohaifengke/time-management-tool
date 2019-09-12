@@ -37,7 +37,6 @@ export default class DayHourMinSecInput extends Component<Props> {
   }
 
   handleNumberChange = (type, e) => {
-    console.log(type, e);
     let number = parseInt(e.target.value || 0, 10);
     if (Number.isNaN(number)) {
       number = 0;
