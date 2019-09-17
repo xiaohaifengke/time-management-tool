@@ -61,9 +61,11 @@ $dashboard-header-min-height: 0.5rem;
   }
 
   .container {
+    display: flex;
+    flex-direction: column;
     flex-grow: 1;
-    margin: 0.28rem 0.24rem 0.52rem;
-    padding: 15px;
+    margin: 0.28rem 0.24rem 0.24rem;
+    padding: 15px 15px 0 15px;
     height: 100px;
     background-color: $content-bgc;
     border-radius: 12px;
@@ -94,6 +96,11 @@ $dashboard-header-min-height: 0.5rem;
         float: right;
         margin-top: 10px;
       }
+    }
+
+    .task-card {
+      flex-grow: 1;
+      height: 100px;
     }
   }
 }

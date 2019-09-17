@@ -4,6 +4,7 @@ import React, { Component } from 'react';
 // import { Tabs, Button } from 'antd';
 import { Button, Icon, Modal, Tabs, Form, DatePicker, Input } from 'antd';
 import moment from 'moment';
+import { Scrollbars } from 'react-custom-scrollbars';
 import * as DB from '../../database';
 import styles from './Dashboard.scss';
 import TimerCard from './components/TimerCard/TimerCard';
@@ -98,14 +99,15 @@ export default class Dashboard extends Component<Props> {
   props: Props;
 
   state = {
+    tabIndex: 1,
     visible: false,
     activeKey: '1',
     tasks: []
   };
 
   async componentWillMount () {
-    let undoneTasks = await DB.queryTasksWhereLaterThanGivenTime(moment().valueOf());
     const currentTimeStamp = new Date().getTime();
+    let undoneTasks = await DB.queryTasksWhereLaterThanGivenTime(currentTimeStamp);
     undoneTasks = undoneTasks.map(task => ({
       ...task,
       remanentTime: task.targetTime - currentTimeStamp,
@@ -139,9 +141,9 @@ export default class Dashboard extends Component<Props> {
         task.done = done;
       }
     });
-    const updatedTasks = tasks.filter(task => !task.done);
+    // const updatedTasks = tasks.filter(task => !task.done);
     this.setState({
-      tasks: updatedTasks
+      tasks
     });
   }
 
@@ -178,12 +180,15 @@ export default class Dashboard extends Component<Props> {
   addTaskByTargetTime = async (values) => {
     const { title, 'date-time-picker': dateTimePicker } = values;
     const targetTime = dateTimePicker.valueOf();
+    const createdTime = moment().valueOf();
     const task = {
       title,
-      createdTime: moment().valueOf(),
+      createdTime,
       targetTime,
       histories: [],
-      mode: '1'
+      mode: '1',
+      remanentTime: targetTime - createdTime,
+      done: false
     };
     const id = await DB.addTask(task);
     task.id = id;
@@ -198,12 +203,15 @@ export default class Dashboard extends Component<Props> {
       days * 24 * 60 * 60 * 1000 + hours * 60 * 60 * 1000
       + minutes * 60 * 1000 + seconds * 1000;
     const targetTime = moment().add(timeStamps, 'ms').valueOf();
+    const createdTime = moment().valueOf();
     const task = {
       title,
-      createdTime: moment().valueOf(),
+      createdTime,
       targetTime,
       histories: [],
-      mode: '2'
+      mode: '2',
+      remanentTime: targetTime - createdTime,
+      done: false
     };
     const id = await DB.addTask(task);
     task.id = id;
@@ -216,9 +224,19 @@ export default class Dashboard extends Component<Props> {
     this.form = form;
   };
 
+  tabClick = (index) => {
+    this.setState({ tabIndex: index });
+  };
+
+  accompaniedKeyEvent = (e) => {
+    console.log(e);
+  };
+
   render () {
-    const { visible, activeKey, tasks } = this.state;
+    const { tabIndex, visible, activeKey, tasks } = this.state;
     const timerCardList = tasks.map(task => <TimerCard task={task} key={task.id}/>);
+    const doneCardList = <div>this is histroies page</div>;
+    const resultList = tabIndex === 1 ? timerCardList : doneCardList;
     return (
       <div className={styles.dashboard}>
         <header className={styles.header}>
@@ -248,8 +266,18 @@ export default class Dashboard extends Component<Props> {
         <div className={styles.container}>
           <div className={styles['content-title']}>
             <span className={styles['tasks-title']}>任务列表</span>
-            <span className={styles.category}>进行中</span>
-            <span className={styles.category}>已完成</span>
+            <span
+              onClick={this.tabClick.bind(this, 1)}
+              onKeyDown={this.accompaniedKeyEvent}
+              className={`${styles.category} ${tabIndex === 1 ? styles.active : ''}`}
+              role="button"
+              tabIndex={-1}>进行中</span>
+            <span
+              onClick={this.tabClick.bind(this, 2)}
+              onKeyDown={this.accompaniedKeyEvent}
+              className={`${styles.category} ${tabIndex === 2 ? styles.active : ''}`}
+              role="button"
+              tabIndex={-1}>已完成</span>
             <div className={styles.actions}>
               <Button type="primary" ghost style={{ marginRight: '24px' }}>
                 排序
@@ -261,9 +289,10 @@ export default class Dashboard extends Component<Props> {
               </Button>
             </div>
           </div>
-
-          <div className="task-card">
-            {timerCardList}
+          <div className={styles['task-card']}>
+            <Scrollbars style={{ width: '100%', height: '100%' }}>
+              {resultList}
+            </Scrollbars>
           </div>
         </div>
         <CollectionCreateForm

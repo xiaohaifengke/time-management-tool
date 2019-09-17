@@ -274,6 +274,7 @@
     "history": "^4.7.2",
     "moment": "^2.24.0",
     "react": "^16.6.3",
+    "react-custom-scrollbars": "^4.2.1",
     "react-dom": "^16.6.3",
     "react-hot-loader": "^4.3.12",
     "react-redux": "^5.1.1",
