@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 // import { Link } from 'react-router-dom';
 // import routes from '../../constants/routes';
 // import { Tabs, Button } from 'antd';
-import { Button, Icon, Modal, Tabs, Form, DatePicker, Input } from 'antd';
+import { Button, Icon, Modal, Tabs, Form, DatePicker, Input, message } from 'antd';
 import moment from 'moment';
 import { Scrollbars } from 'react-custom-scrollbars';
 import * as DB from '../../database';
@@ -15,6 +15,7 @@ type Props = {};
 const FormItem = Form.Item;
 const { TabPane } = Tabs;
 const { TextArea } = Input;
+const { confirm } = Modal;
 const formItemLayout = {
   labelCol: { span: 5 },
   wrapperCol: { span: 18 }
@@ -232,9 +233,37 @@ export default class Dashboard extends Component<Props> {
     console.log(e);
   };
 
+  showDeleteConfirm = (id) => {
+    const { tasks } = this.state;
+    const self = this;
+    confirm({
+      title: '确认删除',
+      content: '删除后将不可恢复，是否确认删除？',
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      async onOk () {
+        await DB.deleteTask(id).catch(err => {
+          console.log(err);
+          message.error('任务删除异常');
+        });
+        message.success('任务删除成功');
+        const newTasks = tasks.filter(item => item.id !== id);
+        self.setState({ tasks: newTasks });
+      },
+      onCancel () {
+        message.info('已取消删除该任务');
+      }
+    });
+  };
+
   render () {
     const { tabIndex, visible, activeKey, tasks } = this.state;
-    const timerCardList = tasks.map(task => <TimerCard task={task} key={task.id}/>);
+    const timerCardList = tasks.map(task =>
+      <TimerCard
+        task={task}
+        key={task.id}
+        onDelete={this.showDeleteConfirm}/>);
     const doneCardList = <div>this is histroies page</div>;
     const resultList = tabIndex === 1 ? timerCardList : doneCardList;
     return (
@@ -307,3 +336,4 @@ export default class Dashboard extends Component<Props> {
     );
   }
 }
+

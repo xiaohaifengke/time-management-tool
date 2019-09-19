@@ -5,6 +5,8 @@ import moment from 'moment';
 import styles from './TimerCard.scss';
 
 type Props = {
+  onDelete: Function,
+  onUpdate: Function,
   task: {
     title: string,
     createdTime: number,
@@ -39,20 +41,20 @@ export default class TimerCard extends Component<Props> {
   };
 
   render () {
-    const { task: { title, createdTime, targetTime, remanentTime } } = this.props;
+    const { task: { id, title, createdTime, targetTime, remanentTime }, onDelete, onUpdate } = this.props;
     const targetTimeStr = moment(targetTime).format('YYYY-MM-DD HH:mm:ss');
     const percent = parseInt((1 - remanentTime / (targetTime - createdTime)) * 100, 10);
     const remanent = this.timeFilter(remanentTime);
     return (
       <div className={styles.TimerCard} data-tid="container">
-        <div className={`clearfix ${styles.actions}`}>
+        <div className={`clearfix ${styles.actions} ${percent > 80 ? styles.warn : ''}`}>
           <div className="fl" style={{ cursor: 'pointer' }}>
-            <i className={styles.circle}/>
+            <i className={`${styles.circle} ${percent > 80 ? styles.warn : ''}`}/>
             <span style={{ verticalAlign: 'middle' }}>结束任务</span>
           </div>
           <div className="fr">
-            <Icon type="edit" style={{ marginRight: '20px', cursor: 'pointer' }}/>
-            <Icon type="delete" style={{ cursor: 'pointer' }}/>
+            <Icon onClick={onUpdate} type="edit" style={{ marginRight: '20px', cursor: 'pointer' }}/>
+            <Icon onClick={() => onDelete(id)} type="delete" style={{ cursor: 'pointer' }}/>
           </div>
         </div>
         <div className={styles['task-name']}>
@@ -66,10 +68,10 @@ export default class TimerCard extends Component<Props> {
           <Progress type="circle" percent={percent} width={120} status="active" strokeWidth={8}/>
         </div>
         <div className={styles.remanent}>
-          <span className={styles['time-digit']}>{remanent.days}</span>天
-          <span className={styles['time-digit']}>{remanent.hours}</span>时
-          <span className={styles['time-digit']}>{remanent.minutes}</span>分
-          <span className={styles['time-digit']}>{remanent.seconds}</span>秒
+          <span className={`${styles['time-digit']}  ${percent > 80 ? styles.warn : ''}`}>{remanent.days}</span>天
+          <span className={`${styles['time-digit']}  ${percent > 80 ? styles.warn : ''}`}>{remanent.hours}</span>时
+          <span className={`${styles['time-digit']}  ${percent > 80 ? styles.warn : ''}`}>{remanent.minutes}</span>分
+          <span className={`${styles['time-digit']}  ${percent > 80 ? styles.warn : ''}`}>{remanent.seconds}</span>秒
         </div>
       </div>
     );

@@ -25,8 +25,12 @@ export function addTask ({ title, createdTime, targetTime, histories = [], done,
   return db.tasks.add({ title, createdTime, targetTime, histories, done, mode });
 }
 
-export async function updateTask ({ title, createdTime, targetTime, histories = [], done, mode }) {
-  await db.tasks.add({ title, createdTime, targetTime, histories, done, mode });
+export function deleteTask (id) {
+  return db.tasks.delete(id);
+}
+
+export function updateTask ({ title, createdTime, targetTime, histories = [], done, mode }) {
+  return db.tasks.put({ title, createdTime, targetTime, histories, done, mode });
 }
 
 /*

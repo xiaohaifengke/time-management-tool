@@ -9,15 +9,15 @@
   border: 1px solid $border-color-normal;
   border-radius: 14px;
   box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.16);
+
+  &:hover {
+    box-shadow: 0 0 6px 1px rgba(0, 0, 0, 0.2) inset;
+  }
 }
 
 .actions {
   color: $color-primary;
   line-height: 19px !important;
-
-  &.warn {
-    color: $color-warning;
-  }
 }
 
 .circle {
@@ -63,4 +63,11 @@
   border: 1px solid $border-color-light;
   border-radius: 4px;
   vertical-align: sub;
+}
+
+.actions, .circle, .time-digit {
+
+  &.warn {
+    color: $color-warning;
+  }
 }
