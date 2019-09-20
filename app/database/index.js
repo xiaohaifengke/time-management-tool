@@ -8,17 +8,28 @@ const db = new Dexie('timer');
  * @PrimaryKey { number } id Autoincremented and unique
  * @Indexes { string } title 任务标题
  * @Indexes { string } createdTime 任务创建时间，格式：'YYYY-MM-DD HH:mm:ss'
+ * @Indexes { string } updatedTime 任务更新时间，格式：'YYYY-MM-DD HH:mm:ss'
  * @Indexes { string } targetTime 任务结束时间，格式：'YYYY-MM-DD HH:mm:ss'
  * @Indexes { array } histories 任务历史信息
  * @Indexes { string } mode 任务类型['1': 通过截止时间添加, '2': 通过任务时长添加]
  // * @Indexes { number } done 是否完成[0: 未完成, 1: 已完成]
  * */
+/**
+ * @histories
+ * @Indexes { string } title 任务标题
+ * @Indexes { string } createdTime 任务创建时间，格式：'YYYY-MM-DD HH:mm:ss'
+ * @Indexes { string } updatedTime 任务更新时间，格式：'YYYY-MM-DD HH:mm:ss'
+ * @Indexes { string } targetTime 任务结束时间，格式：'YYYY-MM-DD HH:mm:ss'
+ * @Indexes { string } mode 任务类型['1': 通过截止时间添加, '2': 通过任务时长添加]
+ * @Indexes { string } recordTime 记录生成时间，格式：'YYYY-MM-DD HH:mm:ss'
+ * */
 db.version(1).stores({
-  tasks: '++id, &title, createdTime, targetTime, *histories, mode'
+  tasks: '++id, &title, createdTime, updatedTime, targetTime, *histories, mode'
 });
 
 export function queryTasksWhereLaterThanGivenTime (timeStamp) {
-  return db.tasks.where('targetTime').above(timeStamp).toArray();;
+  return db.tasks.where('targetTime').above(timeStamp).sortBy('id');
+  ;
 }
 
 export function addTask ({ title, createdTime, targetTime, histories = [], done, mode }) {
@@ -29,8 +40,8 @@ export function deleteTask (id) {
   return db.tasks.delete(id);
 }
 
-export function updateTask ({ title, createdTime, targetTime, histories = [], done, mode }) {
-  return db.tasks.put({ title, createdTime, targetTime, histories, done, mode });
+export function updateTask ({ id, title, createdTime, targetTime, histories, done, mode }) {
+  return db.tasks.put({ id, title, createdTime, targetTime, histories, done, mode });
 }
 
 /*

@@ -2,99 +2,18 @@ import React, { Component } from 'react';
 // import { Link } from 'react-router-dom';
 // import routes from '../../constants/routes';
 // import { Tabs, Button } from 'antd';
-import { Button, Icon, Modal, Tabs, Form, DatePicker, Input, message } from 'antd';
+import { Button, Icon, Modal, message } from 'antd';
 import moment from 'moment';
 import { Scrollbars } from 'react-custom-scrollbars';
 import * as DB from '../../database';
 import styles from './Dashboard.scss';
 import TimerCard from './components/TimerCard/TimerCard';
-import DayHourMinSecInput from './components/DayHourMinSecInput/DayHourMinSecInput';
+import CollectionCreateForm from './components/TimerModal/TimerModal';
+import { timeFilter } from '../../utils';
 
 type Props = {};
 
-const FormItem = Form.Item;
-const { TabPane } = Tabs;
-const { TextArea } = Input;
 const { confirm } = Modal;
-const formItemLayout = {
-  labelCol: { span: 5 },
-  wrapperCol: { span: 18 }
-};
-
-const CollectionCreateForm = Form.create()(
-  (props) => {
-    const { visible, activeKey, onCancel, onCreate, onTabClick, form } = props;
-    const { getFieldDecorator } = form;
-    const checkDuration = (rule, value, callback) => {
-      const { required } = rule;
-      if (required) {
-        if (value.days || value.hours || value.minutes || value.seconds) {
-          callback();
-          return;
-        }
-        callback('请输入时长'); // 任务时间必须大于0秒
-      } else {
-        callback();
-      }
-    };
-    return (
-      <Modal
-        visible={visible}
-        title="添加任务"
-        okText="保存"
-        onCancel={onCancel}
-        onOk={onCreate}
-      >
-        <Tabs defaultActiveKey="1" activeKey={activeKey} onTabClick={onTabClick}>
-          <TabPane tab="根据截止时间添加" key="1">
-            <Form layout="horizontal">
-              <FormItem label="任务名称" {...formItemLayout}>
-                {getFieldDecorator('title', {
-                  rules: [{ required: true, message: '请输入任务名称！' }]
-                })(
-                  <Input/>
-                )}
-              </FormItem>
-              <FormItem label="截止时间" {...formItemLayout}>
-                {getFieldDecorator('date-time-picker', {
-                  rules: [{ type: 'object', required: activeKey === '1', message: '请选择任务截止时间！' }]
-                })(
-                  <DatePicker style={{ width: '100%' }} showTime format="YYYY-MM-DD HH:mm:ss"/>
-                )}
-              </FormItem>
-              <FormItem label="">
-                {getFieldDecorator('description')(
-                  <TextArea placeholder="在此处按2019-09-03 09:59:59或20190903095959或190903095959格式输入时间，可自动提取"
-                            autosize={{ minRows: 2, maxRows: 6 }}/>)}
-              </FormItem>
-            </Form>
-          </TabPane>
-          <TabPane tab="根据任务时长添加" key="2">
-            <Form layout="horizontal">
-              <FormItem label="任务名称" {...formItemLayout}>
-                {getFieldDecorator('title', {
-                  rules: [{ required: true, message: '请输入任务名称！' }]
-                })(
-                  <Input/>
-                )}
-              </FormItem>
-              <FormItem label="任务时长" {...formItemLayout}>
-                {getFieldDecorator('value', {
-                  initialValue: { days: '', hours: '', minutes: '', seconds: '' },
-                  rules: [{ required: activeKey === '2', validator: checkDuration }]
-                })(<DayHourMinSecInput/>)}
-              </FormItem>
-              <FormItem label="">
-                {getFieldDecorator('description')(
-                  <TextArea placeholder="在此处按000000格式输入时间，可自动提取" autosize={{ minRows: 2, maxRows: 6 }}/>)}
-              </FormItem>
-            </Form>
-          </TabPane>
-        </Tabs>
-      </Modal>
-    );
-  }
-);
 
 export default class Dashboard extends Component<Props> {
   props: Props;
@@ -102,8 +21,14 @@ export default class Dashboard extends Component<Props> {
   state = {
     tabIndex: 1,
     visible: false,
+    editTaskId: 0, // 0: 新建, !0: 编辑任务的id
     activeKey: '1',
-    tasks: []
+    tasks: [],
+    fields: {
+      title: '',
+      dateTimePicker: '',
+      duration: { days: '', hours: '', minutes: '', seconds: '' }
+    }
   };
 
   async componentWillMount () {
@@ -148,8 +73,29 @@ export default class Dashboard extends Component<Props> {
     });
   }
 
-  showModal = () => {
-    this.setState({ visible: true });
+  sortTask = () => {
+    this.setState(prevState => {
+      prevState.tasks.sort((a, b) => (a.remanentTime - b.remanentTime));
+      return { tasks: prevState.tasks };
+    });
+  };
+
+  showModal = (task) => {
+    const fields = task ? {
+      title: task.title,
+      dateTimePicker: moment(task.targetTime),
+      duration: timeFilter(task.remanentTime)
+    } : {
+      title: '',
+      dateTimePicker: moment(),
+      duration: { days: '', hours: '', minutes: '', seconds: '' }
+    };
+    this.setState({
+      editTaskId: task && task.id || 0,
+      visible: true,
+      activeKey: task && task.mode || '1',
+      fields
+    });
   };
 
   handleTabClick = (key) => {
@@ -185,17 +131,14 @@ export default class Dashboard extends Component<Props> {
     const task = {
       title,
       createdTime,
+      updatedTime: createdTime,
       targetTime,
       histories: [],
       mode: '1',
       remanentTime: targetTime - createdTime,
       done: false
     };
-    const id = await DB.addTask(task);
-    task.id = id;
-    this.setState(prevState => ({
-      tasks: [...prevState.tasks, task]
-    }));
+    this.persistenceLogic(task);
   };
 
   addTaskByDuration = async (values) => {
@@ -208,17 +151,43 @@ export default class Dashboard extends Component<Props> {
     const task = {
       title,
       createdTime,
+      updatedTime: createdTime,
       targetTime,
       histories: [],
       mode: '2',
       remanentTime: targetTime - createdTime,
       done: false
     };
-    const id = await DB.addTask(task);
-    task.id = id;
-    this.setState(prevState => ({
-      tasks: [...prevState.tasks, task]
-    }));
+    this.persistenceLogic(task);
+  };
+
+  persistenceLogic = async (task) => {
+    const { editTaskId, tasks } = this.state;
+    if (editTaskId) { // update
+      const index = tasks.findIndex(item => item.id === editTaskId);
+      const oldTask = tasks[index];
+      const { title, createdTime, updatedTime, targetTime, histories, done, mode } = oldTask;
+      histories.push({ title, createdTime, updatedTime, targetTime, done, mode, recordTime: moment().valueOf() });
+      task.id = editTaskId;
+      task.histories = histories;
+      task.createdTime = createdTime;
+      await DB.updateTask(task).catch(err => {
+        console.log(err);
+        message.error('任务保存异常');
+      });
+      message.success('任务保存成功');
+      tasks.splice(index, 1, task);
+      this.setState({ tasks });
+    } else { // create
+      const id = await DB.addTask(task).catch(err => {
+        console.log(err);
+        message.error('任务保存异常');
+      });
+      task.id = id;
+      this.setState(prevState => ({
+        tasks: [...prevState.tasks, task]
+      }));
+    }
   };
 
   saveFormRef = (form) => {
@@ -257,12 +226,43 @@ export default class Dashboard extends Component<Props> {
     });
   };
 
+  showTerminateConfirm = (task) => {
+    const { tasks } = this.state;
+    const self = this;
+    confirm({
+      title: '确认结束',
+      content: '确定提前结束任务？',
+      okText: '确定',
+      okType: 'warn',
+      cancelText: '取消',
+      async onOk () {
+        const currentTime = moment().valueOf();
+        const { title, createdTime, updatedTime, targetTime, histories, done, mode } = task;
+        histories.push({ title, createdTime, updatedTime, targetTime, done, mode, recordTime: currentTime });
+        const updatedTask = { ...task, updatedTime: currentTime, targetTime: currentTime };
+        await DB.updateTask(updatedTask).catch(err => {
+          console.log(err);
+          message.error('任务结束异常');
+        });
+        message.success('任务结束成功');
+        const index = tasks.findIndex(item => item.id === updatedTask.id);
+        tasks.splice(index, 1, updatedTask);
+        self.setState({ tasks });
+      },
+      onCancel () {
+        message.info('已取消删除该任务');
+      }
+    });
+  };
+
   render () {
-    const { tabIndex, visible, activeKey, tasks } = this.state;
+    const { tabIndex, visible, activeKey, tasks, fields } = this.state;
     const timerCardList = tasks.map(task =>
       <TimerCard
         task={task}
         key={task.id}
+        onTerminate={this.showTerminateConfirm}
+        onUpdate={this.showModal}
         onDelete={this.showDeleteConfirm}/>);
     const doneCardList = <div>this is histroies page</div>;
     const resultList = tabIndex === 1 ? timerCardList : doneCardList;
@@ -308,11 +308,11 @@ export default class Dashboard extends Component<Props> {
               role="button"
               tabIndex={-1}>已完成</span>
             <div className={styles.actions}>
-              <Button type="primary" ghost style={{ marginRight: '24px' }}>
+              <Button type="primary" ghost onClick={this.sortTask} style={{ marginRight: '24px' }}>
                 排序
                 <Icon type="swap"/>
               </Button>
-              <Button type="primary" ghost onClick={this.showModal}>
+              <Button type="primary" ghost onClick={() => this.showModal()}>
                 添加
                 <Icon type="plus-square-o"/>
               </Button>
@@ -327,6 +327,7 @@ export default class Dashboard extends Component<Props> {
         <CollectionCreateForm
           ref={this.saveFormRef}
           activeKey={activeKey}
+          fields={fields}
           visible={visible}
           onCancel={this.handleCancel}
           onCreate={this.handleCreate}
