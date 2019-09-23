@@ -62,6 +62,8 @@ export default class Dashboard extends Component<Props> {
         if (remanentTime <= 0) {
           remanentTime = 0;
           done = true;
+          const needUpdatedTask = {...task, doneTime: currentTimeStamp, done: 1}
+          DB.updateTask(needUpdatedTask);
         }
         task.remanentTime = remanentTime;
         task.done = done;
@@ -239,7 +241,7 @@ export default class Dashboard extends Component<Props> {
         const currentTime = moment().valueOf();
         const { title, createdTime, updatedTime, targetTime, histories, done, mode } = task;
         histories.push({ title, createdTime, updatedTime, targetTime, done, mode, recordTime: currentTime });
-        const updatedTask = { ...task, updatedTime: currentTime, targetTime: currentTime };
+        const updatedTask = { ...task, updatedTime: currentTime, doneTime: currentTime };
         await DB.updateTask(updatedTask).catch(err => {
           console.log(err);
           message.error('任务结束异常');
