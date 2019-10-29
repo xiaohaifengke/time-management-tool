@@ -1,7 +1,8 @@
 /**
  * Created by Liu on 2019/9/19.
  */
-export function timeFilter (timeStamp) {
+export function timeFilter (ts) {
+  const timeStamp = ts > 0 ? ts : 0;
   let timeDiff;
   const d = Math.floor(timeStamp / (24 * 60 * 60 * 1000));
   timeDiff = timeStamp % (24 * 60 * 60 * 1000);

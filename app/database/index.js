@@ -25,12 +25,26 @@ const db = new Dexie('timer');
  * @Indexes { string } recordTime 记录生成时间，格式：'YYYY-MM-DD HH:mm:ss'
  * */
 db.version(1).stores({
-  tasks: '++id, &title, createdTime, updatedTime, targetTime, doneTime, *histories, mode'
+  tasks: '++id, &title, createdTime, updatedTime, targetTime, *histories, mode'
 });
 
-export function queryTasksWhereLaterThanGivenTime (timeStamp) {
-  return db.tasks.where('targetTime').above(timeStamp).sortBy('id');
-  ;
+// Will only be executed if a version below 2 was installed.
+/* eslint no-param-reassign: ["error", { "props": true, "ignorePropertyModificationsFor": ["task"] }] */
+db.version(2).stores({
+  tasks: '++id, &title, createdTime, updatedTime, targetTime, doneTime, *histories, mode'
+}).upgrade(tx => (tx.tasks.toCollection().modify(task => {
+  if (task.targetTime > new Date().getTime()) {
+    task.doneTime = 0;
+  } else {
+    task.doneTime = task.targetTime;
+  }
+})));
+
+export function queryTasksWhereLaterThanGivenTime (timeStamp = new Date().getTime()) {
+  return db.tasks
+    .where('targetTime').above(timeStamp)
+    .and(tasks => tasks.doneTime === 0)
+    .sortBy('id');
 }
 
 export function addTask ({ title, createdTime, targetTime, doneTime = 0, histories = [], done, mode }) {
@@ -45,40 +59,48 @@ export function updateTask ({ id, title, createdTime, targetTime, doneTime = 0, 
   return db.tasks.put({ id, title, createdTime, targetTime, doneTime, histories, done, mode });
 }
 
+export function queryDoneTask () {
+  return db.tasks
+    .where('targetTime').below(new Date().getTime())
+    .or('doneTime').notEqual(0)
+    .reverse()
+    .sortBy('id');
+}
+
 /*
 export async function test () {
-  // table.where(indexOrPrimKey).equals(key)
-  const id = await db.tasksa.put({ date: Date.now(), description: 'Test Dexie', done: 0 });
-  console.log(`Got id ${  id}`);
-  // Now lets add a bunch of tasks
-  await db.tasksa.bulkPut([
-    { date: Date.now(), description: 'Test Dexie bulkPut()', done: 1 },
-    { date: Date.now(), description: 'Finish testing Dexie bulkPut()', done: 1 }
-  ]);
-  // Ok, so let's query it
+// table.where(indexOrPrimKey).equals(key)
+const id = await db.tasksa.put({ date: Date.now(), description: 'Test Dexie', done: 0 });
+console.log(`Got id ${  id}`);
+// Now lets add a bunch of tasks
+await db.tasksa.bulkPut([
+{ date: Date.now(), description: 'Test Dexie bulkPut()', done: 1 },
+{ date: Date.now(), description: 'Finish testing Dexie bulkPut()', done: 1 }
+]);
+// Ok, so let's query it
 
-  const tasks = await db.tasksa.where('done').above(0).toArray();
-  console.log(`Completed tasks: ${  JSON.stringify(tasks, 0, 2)}`);
+const tasks = await db.tasksa.where('done').above(0).toArray();
+console.log(`Completed tasks: ${  JSON.stringify(tasks, 0, 2)}`);
 
-  // Ok, so let's complete the 'Test Dexie' task.
-  await db.tasksa
-    .where('description')
-    .startsWithIgnoreCase('test dexi')
-    .modify({ done: 1 });
+// Ok, so let's complete the 'Test Dexie' task.
+await db.tasksa
+.where('description')
+.startsWithIgnoreCase('test dexi')
+.modify({ done: 1 });
 
-  console.log('All tasks should be completed now.');
-  console.log('Now let\'s delete all old tasks:');
+console.log('All tasks should be completed now.');
+console.log('Now let\'s delete all old tasks:');
 
-  // And let's remove all old tasks:
-  await db.tasksa
-    .where('date')
-    .below(Date.now())
-    .delete();
+// And let's remove all old tasks:
+await db.tasksa
+.where('date')
+.below(Date.now())
+.delete();
 
-  console.log('Done.');
+console.log('Done.');
 }
 
 test().catch(err => {
-  console.error(`Uh oh! ${  err.stack}`);
+console.error(`Uh oh! ${  err.stack}`);
 });
 */

@@ -8,6 +8,7 @@ import styles from './TimerCard.scss';
 type Props = {
   onDelete: Function,
   onUpdate: Function,
+  onTerminate: Function,
   task: {
     title: string,
     createdTime: number,
@@ -41,7 +42,7 @@ export default class TimerCard extends Component<Props> {
             <Icon onClick={() => onDelete(id)} type="delete" style={{ cursor: 'pointer' }}/>
           </div>
         </div>
-        <div className={styles['task-name']}>
+        <div title={title} className={`${styles['task-name']} text-ellipsis`}>
           {title}
         </div>
         <div className={styles['task-deadline']}>

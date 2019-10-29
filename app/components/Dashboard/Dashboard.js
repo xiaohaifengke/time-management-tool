@@ -8,6 +8,7 @@ import { Scrollbars } from 'react-custom-scrollbars';
 import * as DB from '../../database';
 import styles from './Dashboard.scss';
 import TimerCard from './components/TimerCard/TimerCard';
+import DoneCard from './components/DoneCard/DoneCard';
 import CollectionCreateForm from './components/TimerModal/TimerModal';
 import { timeFilter } from '../../utils';
 
@@ -24,6 +25,7 @@ export default class Dashboard extends Component<Props> {
     editTaskId: 0, // 0: 新建, !0: 编辑任务的id
     activeKey: '1',
     tasks: [],
+    doneTasks: [], // 已完成任务
     fields: {
       title: '',
       dateTimePicker: '',
@@ -62,7 +64,7 @@ export default class Dashboard extends Component<Props> {
         if (remanentTime <= 0) {
           remanentTime = 0;
           done = true;
-          const needUpdatedTask = {...task, doneTime: currentTimeStamp, done: 1}
+          const needUpdatedTask = { ...task, doneTime: currentTimeStamp, done: 1 };
           DB.updateTask(needUpdatedTask);
         }
         task.remanentTime = remanentTime;
@@ -196,8 +198,26 @@ export default class Dashboard extends Component<Props> {
     this.form = form;
   };
 
-  tabClick = (index) => {
-    this.setState({ tabIndex: index });
+  tabClick = async (index) => {
+    let undoneTasks = [];
+    let doneTasks = [];
+    if (index === 1) {
+      const currentTimeStamp = new Date().getTime();
+      undoneTasks = await DB.queryTasksWhereLaterThanGivenTime(currentTimeStamp);
+      undoneTasks = undoneTasks.map(task => ({
+        ...task,
+        remanentTime: task.targetTime - currentTimeStamp,
+        done: false
+      }));
+      this.setState({ tabIndex: index, tasks: undoneTasks });
+    } else if (index === 2) {
+      try {
+        doneTasks = await DB.queryDoneTask();
+      } catch (e) {
+        message.error('查询异常，请重启应用后重试。');
+      }
+      this.setState({ tabIndex: index, doneTasks });
+    }
   };
 
   accompaniedKeyEvent = (e) => {
@@ -252,13 +272,45 @@ export default class Dashboard extends Component<Props> {
         self.setState({ tasks });
       },
       onCancel () {
-        message.info('已取消删除该任务');
+        message.info('已取消结束该任务');
       }
     });
   };
 
+  restart = (id) => {
+    const { doneTasks } = this.state;
+    const self = this;
+    confirm({
+      title: '重新开始',
+      content: '确认重新开始该任务？',
+      okText: '确定',
+      okType: 'warn',
+      cancelText: '取消',
+      async onOk () {
+        const doneTask = doneTasks.find(item => item.id === id);
+        const {title, mode, createdTime, targetTime} = doneTask;
+        const newCreatedTime = moment().valueOf();
+        const newTargetTime = newCreatedTime + targetTime - createdTime;
+        const task = {
+          title: `${title}-${newCreatedTime}`,
+          createdTime: newCreatedTime,
+          updatedTime: newCreatedTime,
+          targetTime: newTargetTime,
+          histories: [],
+          mode,
+          remanentTime: newTargetTime - newCreatedTime,
+          done: false
+        };
+        self.persistenceLogic(task);
+      },
+      onCancel () {
+        message.info('已取消重新开始该任务');
+      }
+    });
+  }
+
   render () {
-    const { tabIndex, visible, activeKey, tasks, fields } = this.state;
+    const { tabIndex, visible, activeKey, tasks, doneTasks, fields } = this.state;
     const timerCardList = tasks.map(task =>
       <TimerCard
         task={task}
@@ -266,7 +318,11 @@ export default class Dashboard extends Component<Props> {
         onTerminate={this.showTerminateConfirm}
         onUpdate={this.showModal}
         onDelete={this.showDeleteConfirm}/>);
-    const doneCardList = <div>this is histroies page</div>;
+    const doneCardList = doneTasks.map(doneTask =>
+      <DoneCard
+        onRestart={this.restart}
+        task={doneTask}
+        key={doneTask.id}/>);
     const resultList = tabIndex === 1 ? timerCardList : doneCardList;
     return (
       <div className={styles.dashboard}>
@@ -309,7 +365,7 @@ export default class Dashboard extends Component<Props> {
               className={`${styles.category} ${tabIndex === 2 ? styles.active : ''}`}
               role="button"
               tabIndex={-1}>已完成</span>
-            <div className={styles.actions}>
+            <div className={`${styles.actions} ${tabIndex === 2 ? 'hidden' : ''}`}>
               <Button type="primary" ghost onClick={this.sortTask} style={{ marginRight: '24px' }}>
                 排序
                 <Icon type="swap"/>
