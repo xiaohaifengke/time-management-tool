@@ -10,9 +10,9 @@
   align-items: center;
   justify-content: space-between;
 }
-//.icon-container, .progress-container, .task-time-info, .task-done-time, .task-status {
-//  flex-grow: 1;
-//}
+.icon-container, .title-duration, .progress-container, .task-time-info, .task-done-time, .task-status {
+  flex-grow: 1;
+}
 
 .icon {
   padding: 15px;
@@ -37,6 +37,7 @@
 }
 
 .title-duration {
+  width: 220px;
   //margin-right: 20px;
   .title {
     font-size: 20px;
@@ -49,6 +50,10 @@
     color: #00A291;
     line-height: 43px;
   }
+}
+
+.progress-container {
+  text-align: center;
 }
 
 .task-time-info {

@@ -175,22 +175,26 @@ export default class Dashboard extends Component<Props> {
       task.id = editTaskId;
       task.histories = histories;
       task.createdTime = createdTime;
-      await DB.updateTask(task).catch(err => {
-        console.log(err);
+      try {
+        await DB.updateTask(task);
+        message.success('任务保存成功');
+        tasks.splice(index, 1, task);
+        this.setState({ tasks });
+      } catch (e) {
+        console.error (e);
         message.error('任务保存异常');
-      });
-      message.success('任务保存成功');
-      tasks.splice(index, 1, task);
-      this.setState({ tasks });
+      }
     } else { // create
-      const id = await DB.addTask(task).catch(err => {
-        console.log(err);
+      try {
+        const id = await DB.addTask(task);
+        task.id = id;
+        this.setState(prevState => ({
+          tasks: [...prevState.tasks, task]
+        }));
+      } catch (e) {
+        console.error (e);
         message.error('任务保存异常');
-      });
-      task.id = id;
-      this.setState(prevState => ({
-        tasks: [...prevState.tasks, task]
-      }));
+      }
     }
   };
 

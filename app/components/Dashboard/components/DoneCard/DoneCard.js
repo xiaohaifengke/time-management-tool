@@ -38,7 +38,7 @@ export default class DoneCard extends Component<Props> {
         <div className={styles.wrapper}>
           <div className={styles['icon-container']}><Icon type="exception" className={styles.icon}/></div>
           <div className={styles['title-duration']}>
-            <div className={styles.title}>{title}</div>
+            <div title={title} className={`${styles.title} text-ellipsis`}>{title}</div>
             <div className={styles.duration}>
               <span>实际用时：</span>
               <span>{duration.days}</span>天

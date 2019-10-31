@@ -39,6 +39,9 @@ db.version(2).stores({
     task.doneTime = task.targetTime;
   }
 })));
+db.version(3).stores({
+  tasks: '++id, title, createdTime, updatedTime, targetTime, doneTime, *histories, mode'
+});
 
 export function queryTasksWhereLaterThanGivenTime (timeStamp = new Date().getTime()) {
   return db.tasks
