@@ -41,6 +41,23 @@ export default class DayHourMinSecInput extends Component<Props> {
     if (Number.isNaN(number)) {
       number = 0;
     }
+    switch (type) {
+      case 'days':
+        number = number > 999 ? 999 : number;
+        break;
+      case 'hours':
+        number = number > 23 ? 23 : number;
+        break;
+      case 'minutes':
+        number = number > 59 ? 59 : number;
+        break;
+      case 'seconds':
+        number = number > 59 ? 59 : number;
+        break;
+      default:
+        break;
+    }
+
     if (!('value' in this.props)) {
       this.setState({ [type]: number });
     }
@@ -66,7 +83,7 @@ export default class DayHourMinSecInput extends Component<Props> {
                 type="text"
                 value={days}
                 onChange={this.handleNumberChange.bind(this, 'days')}
-                // style={{ width: '65%', marginRight: '3%' }}
+                style={{ padding: '4px 5px', textAlign: 'center' }}
               />
             </Col>
             <Col span={8}>

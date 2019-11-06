@@ -10,13 +10,13 @@
  *
  * @flow
  */
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 
 export default class AppUpdater {
-  constructor() {
+  constructor () {
     log.transports.file.level = 'info';
     autoUpdater.logger = log;
     autoUpdater.checkForUpdatesAndNotify();
@@ -100,3 +100,43 @@ app.on('ready', async () => {
   // eslint-disable-next-line
   new AppUpdater();
 });
+
+ipcMain.on('tasks-save-dialog', (event, tasks) => {
+  // console.log(app.getAppPath(), process.execPath, process.cwd());
+  const options = {
+    title: '导出全部任务',
+    // defaultPath: process.cwd(),
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+    message: '导出全部任务，目前仅供开发调试使用。'
+  };
+  dialog.showSaveDialog(options, (filepath) => {
+    if (!filepath) return;
+    const fs = require('fs');
+    // const filenameReg = /(?<=.+[\\/])\w+(\.\w+)*$/g;
+    // const directoryPathReg = /.+(?=[\\/]\w+(\.\w+)*$)/g;
+    // const filename = (filepath.match(filenameReg) || [])[0] || 'all-tasks.json';
+    // const directoryPath = (filepath.match(directoryPathReg) || [])[0];
+    const tasksJsonStr = JSON.stringify(tasks);
+    fs.writeFile(filepath, tasksJsonStr, 'utf8', err => {
+      if (err) {
+        event.sender.send('tasks-saved-status', { type: 'info', status: 'error', error: err });
+        throw err;
+      }
+      event.sender.send('tasks-saved-status', { type: 'info', status: 'success' });
+    });
+  });
+});
+
+// ipcMain.on('tasks-import-dialog', (event) => {
+//   const options = {
+//     title: '导入任务',
+//     // defaultPath: process.cwd(),
+//     properties: ['openFile'],
+//     filters: [{ name: 'JSON', extensions: ['json'] }],
+//     message: '选择需要导入的文件，目前仅供开发调试使用。'
+//   };
+//   dialog.showOpenDialog(mainWindow, options, file => {
+//     // if (file) event.sender.send('selected-directory', files)
+//     console.log(file);
+//   })
+// });

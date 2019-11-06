@@ -2,6 +2,7 @@
  * Created by Liu on 2019/9/11.
  */
 import Dexie from 'dexie';
+import { message } from 'antd';
 
 const db = new Dexie('timer');
 /**
@@ -25,13 +26,15 @@ const db = new Dexie('timer');
  * @Indexes { string } recordTime 记录生成时间，格式：'YYYY-MM-DD HH:mm:ss'
  * */
 db.version(1).stores({
-  tasks: '++id, &title, createdTime, updatedTime, targetTime, *histories, mode'
+  tasks: '++id, title, createdTime, updatedTime, targetTime, doneTime, *histories, mode'
 });
 
 // Will only be executed if a version below 2 was installed.
 /* eslint no-param-reassign: ["error", { "props": true, "ignorePropertyModificationsFor": ["task"] }] */
+
+/*
 db.version(2).stores({
-  tasks: '++id, &title, createdTime, updatedTime, targetTime, doneTime, *histories, mode'
+  tasks: '++id, title, createdTime, updatedTime, targetTime, doneTime, *histories, mode'
 }).upgrade(tx => (tx.tasks.toCollection().modify(task => {
   if (task.targetTime > new Date().getTime()) {
     task.doneTime = 0;
@@ -39,9 +42,7 @@ db.version(2).stores({
     task.doneTime = task.targetTime;
   }
 })));
-db.version(3).stores({
-  tasks: '++id, title, createdTime, updatedTime, targetTime, doneTime, *histories, mode'
-});
+*/
 
 export function queryTasksWhereLaterThanGivenTime (timeStamp = new Date().getTime()) {
   return db.tasks
@@ -68,6 +69,23 @@ export function queryDoneTask () {
     .or('doneTime').notEqual(0)
     .reverse()
     .sortBy('id');
+}
+
+export function queryAllTask () {
+  return db.tasks
+    .where('targetTime').above(0)
+    .sortBy('id');
+}
+
+export function importTransaction (tasks) {
+  db.transaction('rw', db.tasks, () => {
+    for (let i = 0; i < tasks.length; i += 1) {
+      addTask(tasks[i]);
+    }
+  }).then(() => message.success('数据导入完成')).catch(err => {
+    console.error(err);
+    message.error('入库异常');
+  });
 }
 
 /*

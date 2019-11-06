@@ -10,7 +10,22 @@ import styles from './Dashboard.scss';
 import TimerCard from './components/TimerCard/TimerCard';
 import DoneCard from './components/DoneCard/DoneCard';
 import CollectionCreateForm from './components/TimerModal/TimerModal';
-import { timeFilter } from '../../utils';
+import { timeFilter, debounce } from '../../utils';
+
+const { ipcRenderer } = require('electron');
+const { dialog: electronDialog } = require('electron').remote;
+const fs = require('fs');
+
+ipcRenderer.on('tasks-saved-status', (event, obj) => {
+  if (obj.type === 'info') {
+    if (obj.status === 'error') {
+      message.error('任务导出异常');
+      console.error(obj.error);
+    } else if (obj.status === 'success') {
+      message.success('任务导出成功');
+    }
+  }
+});
 
 type Props = {};
 
@@ -23,14 +38,16 @@ export default class Dashboard extends Component<Props> {
     tabIndex: 1,
     visible: false,
     editTaskId: 0, // 0: 新建, !0: 编辑任务的id
-    activeKey: '1',
+    activeKey: '1', // '1': 根据截止时间添加  '2': 根据任务时长添加
     tasks: [],
     doneTasks: [], // 已完成任务
     fields: {
       title: '',
       dateTimePicker: '',
       duration: { days: '', hours: '', minutes: '', seconds: '' }
-    }
+    },
+    clickedTimes: 0,
+    debugBtnVisible: false
   };
 
   async componentWillMount () {
@@ -55,26 +72,28 @@ export default class Dashboard extends Component<Props> {
 
   tick () {
     const { tasks } = this.state;
-    const currentTimeStamp = new Date().getTime();
-    /* eslint no-param-reassign: ["error", { "props": true, "ignorePropertyModificationsFor": ["task"] }] */
-    tasks.forEach(task => {
-      if (!task.done) {
-        let remanentTime = task.targetTime - currentTimeStamp;
-        let done = false;
-        if (remanentTime <= 0) {
-          remanentTime = 0;
-          done = true;
-          const needUpdatedTask = { ...task, doneTime: currentTimeStamp, done: 1 };
-          DB.updateTask(needUpdatedTask);
+    if (tasks.length > 0) {
+      const currentTimeStamp = new Date().getTime();
+      /* eslint no-param-reassign: ["error", { "props": true, "ignorePropertyModificationsFor": ["task"] }] */
+      tasks.forEach(task => {
+        if (!task.done) {
+          let remanentTime = task.targetTime - currentTimeStamp;
+          let done = false;
+          if (remanentTime <= 0) {
+            remanentTime = 0;
+            done = true;
+            const needUpdatedTask = { ...task, doneTime: currentTimeStamp, done: 1 };
+            DB.updateTask(needUpdatedTask);
+          }
+          task.remanentTime = remanentTime;
+          task.done = done;
         }
-        task.remanentTime = remanentTime;
-        task.done = done;
-      }
-    });
-    // const updatedTasks = tasks.filter(task => !task.done);
-    this.setState({
-      tasks
-    });
+      });
+      // const updatedTasks = tasks.filter(task => !task.done);
+      this.setState({
+        tasks
+      });
+    }
   }
 
   sortTask = () => {
@@ -181,7 +200,7 @@ export default class Dashboard extends Component<Props> {
         tasks.splice(index, 1, task);
         this.setState({ tasks });
       } catch (e) {
-        console.error (e);
+        console.error(e);
         message.error('任务保存异常');
       }
     } else { // create
@@ -192,7 +211,7 @@ export default class Dashboard extends Component<Props> {
           tasks: [...prevState.tasks, task]
         }));
       } catch (e) {
-        console.error (e);
+        console.error(e);
         message.error('任务保存异常');
       }
     }
@@ -238,13 +257,15 @@ export default class Dashboard extends Component<Props> {
       okType: 'danger',
       cancelText: '取消',
       async onOk () {
-        await DB.deleteTask(id).catch(err => {
-          console.log(err);
+        try {
+          await DB.deleteTask(id);
+          message.success('任务删除成功');
+          const newTasks = tasks.filter(item => item.id !== id);
+          self.setState({ tasks: newTasks });
+        } catch (e) {
+          console.log(e);
           message.error('任务删除异常');
-        });
-        message.success('任务删除成功');
-        const newTasks = tasks.filter(item => item.id !== id);
-        self.setState({ tasks: newTasks });
+        }
       },
       onCancel () {
         message.info('已取消删除该任务');
@@ -266,14 +287,16 @@ export default class Dashboard extends Component<Props> {
         const { title, createdTime, updatedTime, targetTime, histories, done, mode } = task;
         histories.push({ title, createdTime, updatedTime, targetTime, done, mode, recordTime: currentTime });
         const updatedTask = { ...task, updatedTime: currentTime, doneTime: currentTime };
-        await DB.updateTask(updatedTask).catch(err => {
-          console.log(err);
+        try {
+          await DB.updateTask(updatedTask);
+          message.success('任务结束成功');
+          const index = tasks.findIndex(item => item.id === updatedTask.id);
+          tasks.splice(index, 1, updatedTask);
+          self.setState({ tasks });
+        } catch (e) {
+          console.log(e);
           message.error('任务结束异常');
-        });
-        message.success('任务结束成功');
-        const index = tasks.findIndex(item => item.id === updatedTask.id);
-        tasks.splice(index, 1, updatedTask);
-        self.setState({ tasks });
+        }
       },
       onCancel () {
         message.info('已取消结束该任务');
@@ -292,7 +315,7 @@ export default class Dashboard extends Component<Props> {
       cancelText: '取消',
       async onOk () {
         const doneTask = doneTasks.find(item => item.id === id);
-        const {title, mode, createdTime, targetTime} = doneTask;
+        const { title, mode, createdTime, targetTime } = doneTask;
         const newCreatedTime = moment().valueOf();
         const newTargetTime = newCreatedTime + targetTime - createdTime;
         const task = {
@@ -311,10 +334,94 @@ export default class Dashboard extends Component<Props> {
         message.info('已取消重新开始该任务');
       }
     });
-  }
+  };
+
+  saveTasks = async () => {
+    try {
+      const tasks = await DB.queryAllTask(0);
+      ipcRenderer.send('tasks-save-dialog', tasks);
+    } catch (e) {
+      console.log(e);
+      message.error('导出任务异常');
+    }
+  };
+
+  importTasks = () => {
+    // ipcRenderer.send('tasks-import-dialog');
+    electronDialog.showOpenDialog({
+      title: '导入任务',
+      properties: ['openFile'],
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      message: '选择需要导入的文件，目前仅供开发调试使用。'
+    }, filesPath => {
+      if (!filesPath) return;
+      const filePath = filesPath[0];
+      try {
+        // fs.accessSync(filePath, fs.constants.R_OK | fs.constants.W_OK);
+        fs.accessSync(filePath, fs.constants.R_OK);
+        const tasksJsonStr = fs.readFileSync(filePath, 'utf8');
+        const tasks = JSON.parse(tasksJsonStr);
+        DB.importTransaction(tasks);
+      } catch (err) {
+        message.error('数据异常，导入失败');
+      }
+    });
+  };
+
+  debugLater = debounce(() => {
+    this.setState({ clickedTimes: 0 });
+  }, 1000);
+
+  debugPattern = () => {
+    let { clickedTimes } = this.state;
+    clickedTimes += 1;
+    this.setState({ clickedTimes });
+    if (clickedTimes >= 6) {
+      this.setState({ debugBtnVisible: true });
+    }
+    this.debugLater();
+  };
+
+  textAreaChange = debounce((e) => {
+    const { value } = e.target;
+    const { activeKey } = this.state;
+    if (activeKey === '1') {
+      const numberArray = value.match(/(?<!\d)(?<year>20\d{2})(?<month>(?:0[1-9]|1[0-2]))(?<date>(?:0[1-9]|[1-3]\d))(?<hour>(?:[0-1]\d|2[0-3]))?(?<minute>[0-5]\d)?(?<seconds>[0-5]\d)?/);
+      const groups = numberArray && numberArray.groups;
+      if (groups) {
+        const { year, month, date, hour, minute, seconds } = groups;
+        const targetTimeStr = `${year}-${month}-${date} ${hour || '00'}:${minute || '00'}:${seconds || '00'}`;
+        const targetTime = moment(moment(targetTimeStr).valueOf());
+        this.setState({
+          fields: { dateTimePicker: targetTime }
+        });
+      }
+    } else if (activeKey === '2') {
+      const numberArray = value.match(/\d{1,9}(?!\d)/);
+      let number = numberArray && numberArray[0] || '';
+      const results = [];
+      const items = ['seconds', 'minutes', 'hours', 'days'];
+      for (let i = 0; i < items.length; i += 1) {
+        const reg = items[i] === 'days' ? /\d{1,3}$/ : /\d{1,2}$/;
+        const secondsResult = number.match(reg);
+        results.push(secondsResult && parseInt(secondsResult[0], 10) || 0);
+        number = number.replace(/\d{1,2}$/, '');
+      }
+      let [seconds, minutes, hours, days] = results;
+      seconds = seconds > 59 ? 59 : seconds;
+      minutes = minutes > 59 ? 59 : minutes;
+      hours = hours > 23 ? 23 : hours;
+      days = days > 999 ? 999 : days;
+      this.setState({
+        fields: {
+          duration: { days, hours, minutes, seconds }
+        }
+      });
+    }
+  }, 500);
 
   render () {
-    const { tabIndex, visible, activeKey, tasks, doneTasks, fields } = this.state;
+    const { tabIndex, visible, activeKey, tasks, doneTasks, fields, debugBtnVisible } = this.state;
     const timerCardList = tasks.map(task =>
       <TimerCard
         task={task}
@@ -351,6 +458,7 @@ export default class Dashboard extends Component<Props> {
               </text>
             </svg>
             <i className={styles.descr}>欢迎使用倒计时管理工具 timer</i>
+            <span className="fr" onClick={this.debugPattern} style={{ width: '150px', height: '45px' }}/>
           </p>
         </header>
 
@@ -369,6 +477,10 @@ export default class Dashboard extends Component<Props> {
               className={`${styles.category} ${tabIndex === 2 ? styles.active : ''}`}
               role="button"
               tabIndex={-1}>已完成</span>
+            <span onDoubleClick={this.saveTasks}
+                  className={`${debugBtnVisible ? styles.category : 'hidden'}`}>导出全部任务</span>
+            <span onDoubleClick={this.importTasks}
+                  className={`${debugBtnVisible ? styles.category : 'hidden'}`}>导入任务</span>
             <div className={`${styles.actions} ${tabIndex === 2 ? 'hidden' : ''}`}>
               <Button type="primary" ghost onClick={this.sortTask} style={{ marginRight: '24px' }}>
                 排序
@@ -394,6 +506,7 @@ export default class Dashboard extends Component<Props> {
           onCancel={this.handleCancel}
           onCreate={this.handleCreate}
           onTabClick={this.handleTabClick}
+          onTextAreaChange={this.textAreaChange}
         />
       </div>
     );

@@ -10,7 +10,11 @@
   align-items: center;
   justify-content: space-between;
 }
-.icon-container, .title-duration, .progress-container, .task-time-info, .task-done-time, .task-status {
+.icon-container,
+.title-duration,
+.progress-container,
+.task-time-info,
+.task-done-time {
   flex-grow: 1;
 }
 
@@ -20,18 +24,18 @@
   height: 75px;
   //margin-right: 30px;
   font-size: 45px;
-  background-color: #DBF6F3;
+  background-color: #dbf6f3;
   border-radius: 12px;
 
   svg {
-    color: #68C3B8;
+    color: #68c3b8;
   }
 
   .warn {
-    background-color: #FFF0E8;
+    background-color: #fff0e8;
 
     svg {
-      color: #F27C33;
+      color: #f27c33;
     }
   }
 }
@@ -47,7 +51,7 @@
   }
   .duration {
     font-size: 16px;
-    color: #00A291;
+    color: #00a291;
     line-height: 43px;
   }
 }
@@ -71,7 +75,7 @@
 .task-done-time {
   //font-family: SetoFont;
   font-family: fantasy;
-  color: #00A291;
+  color: #00a291;
 
   .task-deadline-date {
     font-size: 26px;
@@ -90,7 +94,7 @@
   //line-height: 75px;
   text-align: center;
   overflow: hidden;
-  color: #00A291;
+  color: #00a291;
 
   .shade {
     position: absolute;
@@ -104,7 +108,7 @@
     position: absolute;
     left: 150px;
     top: 5px;
-    transition: left .1s ease-out;
+    transition: left 0.1s ease-out;
   }
 
   &:hover {

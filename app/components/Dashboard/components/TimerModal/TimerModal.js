@@ -36,7 +36,7 @@ const CollectionCreateForm = Form.create(/* {
   }
 } */)(
   (props) => {
-    const { visible, activeKey, onCancel, onCreate, onTabClick, form, fields } = props;
+    const { visible, activeKey, onCancel, onCreate, onTabClick, form, fields, onTextAreaChange } = props;
     const { getFieldDecorator } = form;
     const checkDuration = (rule, value, callback) => {
       const { required } = rule;
@@ -79,7 +79,11 @@ const CollectionCreateForm = Form.create(/* {
               </FormItem>
               <FormItem label="">
                 {getFieldDecorator('description')(
-                  <TextArea placeholder="在此处按2019-09-03 09:59:59或20190903095959或190903095959格式输入时间，可自动提取"
+                  <TextArea onChange={(e) => {
+                    e.persist();
+                    onTextAreaChange(e);
+                  }}
+                            placeholder="在此处按20190903095959格式输入时间，可自动提取"
                             autosize={{ minRows: 2, maxRows: 6 }}/>)}
               </FormItem>
             </Form>
@@ -102,7 +106,12 @@ const CollectionCreateForm = Form.create(/* {
               </FormItem>
               <FormItem label="">
                 {getFieldDecorator('description')(
-                  <TextArea placeholder="在此处按000000格式输入时间，可自动提取" autosize={{ minRows: 2, maxRows: 6 }}/>)}
+                  <TextArea onChange={(e) => {
+                    e.persist();
+                    onTextAreaChange(e);
+                  }}
+                            placeholder="在此处按00000000格式输入时间，可自动提取"
+                            autosize={{ minRows: 2, maxRows: 6 }}/>)}
               </FormItem>
             </Form>
           </TabPane>

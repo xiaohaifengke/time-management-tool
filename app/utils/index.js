@@ -23,3 +23,44 @@ export function timeFilter (ts) {
     return value > 9 ? value : `0${value}`;
   }
 };
+
+export function debounce (func, wait, scope) {
+  let timeout;
+  return function(...args) {
+    const context = scope || this;
+    const later = function() {
+      timeout = null;
+      func.apply(context, args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+/**
+ * in case of a "storm of events", this executes once every $threshold
+ * @param fn
+ * @param threshhold
+ * @param scope
+ * @returns {Function}
+ */
+export function throttle (fn, threshhold = 250, scope) {
+  let last;
+  let deferTimer;
+  return function(...args) {
+    const context = scope || this;
+
+    const now = +new Date;
+    if (last && now < last + threshhold) {
+      // hold on to it
+      clearTimeout(deferTimer);
+      deferTimer = setTimeout(() => {
+        last = now;
+        fn.apply(context, args);
+      }, threshhold);
+    } else {
+      last = now;
+      fn.apply(context, args);
+    }
+  };
+}
