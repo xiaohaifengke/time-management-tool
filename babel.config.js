@@ -5,6 +5,7 @@ const developmentEnvironments = ['development', 'test'];
 const developmentPlugins = [require('react-hot-loader/babel')];
 
 const productionPlugins = [
+  require('babel-plugin-transform-modern-regexp'),
   require('babel-plugin-dev-expression'),
 
   // babel-preset-react-optimize

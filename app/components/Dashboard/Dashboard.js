@@ -50,9 +50,11 @@ export default class Dashboard extends Component<Props> {
     debugBtnVisible: false
   };
 
-  async componentWillMount () {
+  async componentWillMount() {
     const currentTimeStamp = new Date().getTime();
-    let undoneTasks = await DB.queryTasksWhereLaterThanGivenTime(currentTimeStamp);
+    let undoneTasks = await DB.queryTasksWhereLaterThanGivenTime(
+      currentTimeStamp
+    );
     undoneTasks = undoneTasks.map(task => ({
       ...task,
       remanentTime: task.targetTime - currentTimeStamp,
@@ -63,14 +65,11 @@ export default class Dashboard extends Component<Props> {
     });
   }
 
-  componentDidMount () {
-    this.timerID = setInterval(
-      () => this.tick(),
-      1000
-    );
+  componentDidMount() {
+    this.timerID = setInterval(() => this.tick(), 1000);
   }
 
-  tick () {
+  tick() {
     const { tasks } = this.state;
     if (tasks.length > 0) {
       const currentTimeStamp = new Date().getTime();
@@ -82,7 +81,11 @@ export default class Dashboard extends Component<Props> {
           if (remanentTime <= 0) {
             remanentTime = 0;
             done = true;
-            const needUpdatedTask = { ...task, doneTime: currentTimeStamp, done: 1 };
+            const needUpdatedTask = {
+              ...task,
+              doneTime: currentTimeStamp,
+              done: 1
+            };
             DB.updateTask(needUpdatedTask);
           }
           task.remanentTime = remanentTime;
@@ -98,30 +101,32 @@ export default class Dashboard extends Component<Props> {
 
   sortTask = () => {
     this.setState(prevState => {
-      prevState.tasks.sort((a, b) => (a.remanentTime - b.remanentTime));
+      prevState.tasks.sort((a, b) => a.remanentTime - b.remanentTime);
       return { tasks: prevState.tasks };
     });
   };
 
-  showModal = (task) => {
-    const fields = task ? {
-      title: task.title,
-      dateTimePicker: moment(task.targetTime),
-      duration: timeFilter(task.remanentTime)
-    } : {
-      title: '',
-      dateTimePicker: moment(),
-      duration: { days: '', hours: '', minutes: '', seconds: '' }
-    };
+  showModal = task => {
+    const fields = task
+      ? {
+          title: task.title,
+          dateTimePicker: moment(task.targetTime),
+          duration: timeFilter(task.remanentTime)
+        }
+      : {
+          title: '',
+          dateTimePicker: moment(),
+          duration: { days: '', hours: '', minutes: '', seconds: '' }
+        };
     this.setState({
-      editTaskId: task && task.id || 0,
+      editTaskId: (task && task.id) || 0,
       visible: true,
-      activeKey: task && task.mode || '1',
+      activeKey: (task && task.mode) || '1',
       fields
     });
   };
 
-  handleTabClick = (key) => {
+  handleTabClick = key => {
     this.setState({ activeKey: key });
   };
 
@@ -147,7 +152,7 @@ export default class Dashboard extends Component<Props> {
     });
   };
 
-  addTaskByTargetTime = async (values) => {
+  addTaskByTargetTime = async values => {
     const { title, 'date-time-picker': dateTimePicker } = values;
     const targetTime = dateTimePicker.valueOf();
     const createdTime = moment().valueOf();
@@ -164,12 +169,19 @@ export default class Dashboard extends Component<Props> {
     this.persistenceLogic(task);
   };
 
-  addTaskByDuration = async (values) => {
-    const { title, value: { days, hours, minutes, seconds } } = values;
+  addTaskByDuration = async values => {
+    const {
+      title,
+      value: { days, hours, minutes, seconds }
+    } = values;
     const timeStamps =
-      days * 24 * 60 * 60 * 1000 + hours * 60 * 60 * 1000
-      + minutes * 60 * 1000 + seconds * 1000;
-    const targetTime = moment().add(timeStamps, 'ms').valueOf();
+      days * 24 * 60 * 60 * 1000 +
+      hours * 60 * 60 * 1000 +
+      minutes * 60 * 1000 +
+      seconds * 1000;
+    const targetTime = moment()
+      .add(timeStamps, 'ms')
+      .valueOf();
     const createdTime = moment().valueOf();
     const task = {
       title,
@@ -184,13 +196,30 @@ export default class Dashboard extends Component<Props> {
     this.persistenceLogic(task);
   };
 
-  persistenceLogic = async (task) => {
+  persistenceLogic = async task => {
     const { editTaskId, tasks } = this.state;
-    if (editTaskId) { // update
+    if (editTaskId) {
+      // update
       const index = tasks.findIndex(item => item.id === editTaskId);
       const oldTask = tasks[index];
-      const { title, createdTime, updatedTime, targetTime, histories, done, mode } = oldTask;
-      histories.push({ title, createdTime, updatedTime, targetTime, done, mode, recordTime: moment().valueOf() });
+      const {
+        title,
+        createdTime,
+        updatedTime,
+        targetTime,
+        histories,
+        done,
+        mode
+      } = oldTask;
+      histories.push({
+        title,
+        createdTime,
+        updatedTime,
+        targetTime,
+        done,
+        mode,
+        recordTime: moment().valueOf()
+      });
       task.id = editTaskId;
       task.histories = histories;
       task.createdTime = createdTime;
@@ -203,7 +232,8 @@ export default class Dashboard extends Component<Props> {
         console.error(e);
         message.error('任务保存异常');
       }
-    } else { // create
+    } else {
+      // create
       try {
         const id = await DB.addTask(task);
         task.id = id;
@@ -217,16 +247,18 @@ export default class Dashboard extends Component<Props> {
     }
   };
 
-  saveFormRef = (form) => {
+  saveFormRef = form => {
     this.form = form;
   };
 
-  tabClick = async (index) => {
+  tabClick = async index => {
     let undoneTasks = [];
     let doneTasks = [];
     if (index === 1) {
       const currentTimeStamp = new Date().getTime();
-      undoneTasks = await DB.queryTasksWhereLaterThanGivenTime(currentTimeStamp);
+      undoneTasks = await DB.queryTasksWhereLaterThanGivenTime(
+        currentTimeStamp
+      );
       undoneTasks = undoneTasks.map(task => ({
         ...task,
         remanentTime: task.targetTime - currentTimeStamp,
@@ -243,11 +275,11 @@ export default class Dashboard extends Component<Props> {
     }
   };
 
-  accompaniedKeyEvent = (e) => {
+  accompaniedKeyEvent = e => {
     console.log(e);
   };
 
-  showDeleteConfirm = (id) => {
+  showDeleteConfirm = id => {
     const { tasks } = this.state;
     const self = this;
     confirm({
@@ -256,7 +288,7 @@ export default class Dashboard extends Component<Props> {
       okText: '删除',
       okType: 'danger',
       cancelText: '取消',
-      async onOk () {
+      async onOk() {
         try {
           await DB.deleteTask(id);
           message.success('任务删除成功');
@@ -267,13 +299,13 @@ export default class Dashboard extends Component<Props> {
           message.error('任务删除异常');
         }
       },
-      onCancel () {
+      onCancel() {
         message.info('已取消删除该任务');
       }
     });
   };
 
-  showTerminateConfirm = (task) => {
+  showTerminateConfirm = task => {
     const { tasks } = this.state;
     const self = this;
     confirm({
@@ -282,11 +314,31 @@ export default class Dashboard extends Component<Props> {
       okText: '确定',
       okType: 'warn',
       cancelText: '取消',
-      async onOk () {
+      async onOk() {
         const currentTime = moment().valueOf();
-        const { title, createdTime, updatedTime, targetTime, histories, done, mode } = task;
-        histories.push({ title, createdTime, updatedTime, targetTime, done, mode, recordTime: currentTime });
-        const updatedTask = { ...task, updatedTime: currentTime, doneTime: currentTime };
+        const {
+          title,
+          createdTime,
+          updatedTime,
+          targetTime,
+          histories,
+          done,
+          mode
+        } = task;
+        histories.push({
+          title,
+          createdTime,
+          updatedTime,
+          targetTime,
+          done,
+          mode,
+          recordTime: currentTime
+        });
+        const updatedTask = {
+          ...task,
+          updatedTime: currentTime,
+          doneTime: currentTime
+        };
         try {
           await DB.updateTask(updatedTask);
           message.success('任务结束成功');
@@ -298,13 +350,13 @@ export default class Dashboard extends Component<Props> {
           message.error('任务结束异常');
         }
       },
-      onCancel () {
+      onCancel() {
         message.info('已取消结束该任务');
       }
     });
   };
 
-  restart = (id) => {
+  restart = id => {
     const { doneTasks } = this.state;
     const self = this;
     confirm({
@@ -313,7 +365,7 @@ export default class Dashboard extends Component<Props> {
       okText: '确定',
       okType: 'warn',
       cancelText: '取消',
-      async onOk () {
+      async onOk() {
         const doneTask = doneTasks.find(item => item.id === id);
         const { title, mode, createdTime, targetTime } = doneTask;
         const newCreatedTime = moment().valueOf();
@@ -330,7 +382,7 @@ export default class Dashboard extends Component<Props> {
         };
         self.persistenceLogic(task);
       },
-      onCancel () {
+      onCancel() {
         message.info('已取消重新开始该任务');
       }
     });
@@ -348,24 +400,27 @@ export default class Dashboard extends Component<Props> {
 
   importTasks = () => {
     // ipcRenderer.send('tasks-import-dialog');
-    electronDialog.showOpenDialog({
-      title: '导入任务',
-      properties: ['openFile'],
-      filters: [{ name: 'JSON', extensions: ['json'] }],
-      message: '选择需要导入的文件，目前仅供开发调试使用。'
-    }, filesPath => {
-      if (!filesPath) return;
-      const filePath = filesPath[0];
-      try {
-        // fs.accessSync(filePath, fs.constants.R_OK | fs.constants.W_OK);
-        fs.accessSync(filePath, fs.constants.R_OK);
-        const tasksJsonStr = fs.readFileSync(filePath, 'utf8');
-        const tasks = JSON.parse(tasksJsonStr);
-        DB.importTransaction(tasks);
-      } catch (err) {
-        message.error('数据异常，导入失败');
+    electronDialog.showOpenDialog(
+      {
+        title: '导入任务',
+        properties: ['openFile'],
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+        message: '选择需要导入的文件，目前仅供开发调试使用。'
+      },
+      filesPath => {
+        if (!filesPath) return;
+        const filePath = filesPath[0];
+        try {
+          // fs.accessSync(filePath, fs.constants.R_OK | fs.constants.W_OK);
+          fs.accessSync(filePath, fs.constants.R_OK);
+          const tasksJsonStr = fs.readFileSync(filePath, 'utf8');
+          const tasks = JSON.parse(tasksJsonStr);
+          DB.importTransaction(tasks);
+        } catch (err) {
+          message.error('数据异常，导入失败');
+        }
       }
-    });
+    );
   };
 
   debugLater = debounce(() => {
@@ -382,15 +437,17 @@ export default class Dashboard extends Component<Props> {
     this.debugLater();
   };
 
-  textAreaChange = debounce((e) => {
+  textAreaChange = debounce(e => {
     const { value } = e.target;
     const { activeKey } = this.state;
     if (activeKey === '1') {
-      const numberArray = value.match(/(?<!\d)(?<year>20\d{2})(?<month>(?:0[1-9]|1[0-2]))(?<date>(?:0[1-9]|[1-3]\d))(?<hour>(?:[0-1]\d|2[0-3]))?(?<minute>[0-5]\d)?(?<seconds>[0-5]\d)?/);
+      const dateReg = /(?<!\d)(?<year>20\d{2})(?<month>(?:0[1-9]|1[0-2]))(?<date>(?:0[1-9]|[1-3]\d))(?<hour>(?:[0-1]\d|2[0-3]))?(?<minute>[0-5]\d)?(?<seconds>[0-5]\d)?/;
+      const numberArray = value.match(dateReg);
       const groups = numberArray && numberArray.groups;
       if (groups) {
         const { year, month, date, hour, minute, seconds } = groups;
-        const targetTimeStr = `${year}-${month}-${date} ${hour || '00'}:${minute || '00'}:${seconds || '00'}`;
+        const targetTimeStr = `${year}-${month}-${date} ${hour ||
+          '00'}:${minute || '00'}:${seconds || '00'}`;
         const targetTime = moment(moment(targetTimeStr).valueOf());
         this.setState({
           fields: { dateTimePicker: targetTime }
@@ -398,13 +455,13 @@ export default class Dashboard extends Component<Props> {
       }
     } else if (activeKey === '2') {
       const numberArray = value.match(/\d{1,9}(?!\d)/);
-      let number = numberArray && numberArray[0] || '';
+      let number = (numberArray && numberArray[0]) || '';
       const results = [];
       const items = ['seconds', 'minutes', 'hours', 'days'];
       for (let i = 0; i < items.length; i += 1) {
         const reg = items[i] === 'days' ? /\d{1,3}$/ : /\d{1,2}$/;
         const secondsResult = number.match(reg);
-        results.push(secondsResult && parseInt(secondsResult[0], 10) || 0);
+        results.push((secondsResult && parseInt(secondsResult[0], 10)) || 0);
         number = number.replace(/\d{1,2}$/, '');
       }
       let [seconds, minutes, hours, days] = results;
@@ -420,20 +477,28 @@ export default class Dashboard extends Component<Props> {
     }
   }, 500);
 
-  render () {
-    const { tabIndex, visible, activeKey, tasks, doneTasks, fields, debugBtnVisible } = this.state;
-    const timerCardList = tasks.map(task =>
+  render() {
+    const {
+      tabIndex,
+      visible,
+      activeKey,
+      tasks,
+      doneTasks,
+      fields,
+      debugBtnVisible
+    } = this.state;
+    const timerCardList = tasks.map(task => (
       <TimerCard
         task={task}
         key={task.id}
         onTerminate={this.showTerminateConfirm}
         onUpdate={this.showModal}
-        onDelete={this.showDeleteConfirm}/>);
-    const doneCardList = doneTasks.map(doneTask =>
-      <DoneCard
-        onRestart={this.restart}
-        task={doneTask}
-        key={doneTask.id}/>);
+        onDelete={this.showDeleteConfirm}
+      />
+    ));
+    const doneCardList = doneTasks.map(doneTask => (
+      <DoneCard onRestart={this.restart} task={doneTask} key={doneTask.id} />
+    ));
     const resultList = tabIndex === 1 ? timerCardList : doneCardList;
     return (
       <div className={styles.dashboard}>
@@ -441,24 +506,53 @@ export default class Dashboard extends Component<Props> {
           <p style={{ height: '100%' }}>
             {/* <span className={`${styles.title} `}>timer</span> */}
             <svg width="220" height="50">
-              <text textAnchor="middle" x="50%" y="86%" className={`${styles.title}`}>
+              <text
+                textAnchor="middle"
+                x="50%"
+                y="86%"
+                className={`${styles.title}`}
+              >
                 timer
               </text>
-              <text textAnchor="middle" x="50%" y="86%" className={`${styles.title} ${styles.title1}`}>
+              <text
+                textAnchor="middle"
+                x="50%"
+                y="86%"
+                className={`${styles.title} ${styles.title1}`}
+              >
                 timer
               </text>
-              <text textAnchor="middle" x="50%" y="86%" className={`${styles.title} ${styles.title2}`}>
+              <text
+                textAnchor="middle"
+                x="50%"
+                y="86%"
+                className={`${styles.title} ${styles.title2}`}
+              >
                 timer
               </text>
-              <text textAnchor="middle" x="50%" y="86%" className={`${styles.title} ${styles.title3}`}>
+              <text
+                textAnchor="middle"
+                x="50%"
+                y="86%"
+                className={`${styles.title} ${styles.title3}`}
+              >
                 timer
               </text>
-              <text textAnchor="middle" x="50%" y="86%" className={`${styles.title} ${styles.title4}`}>
+              <text
+                textAnchor="middle"
+                x="50%"
+                y="86%"
+                className={`${styles.title} ${styles.title4}`}
+              >
                 timer
               </text>
             </svg>
             <i className={styles.descr}>欢迎使用倒计时管理工具 timer</i>
-            <span className="fr" onClick={this.debugPattern} style={{ width: '150px', height: '45px' }}/>
+            <span
+              className="fr"
+              onClick={this.debugPattern}
+              style={{ width: '150px', height: '45px' }}
+            />
           </p>
         </header>
 
@@ -468,27 +562,52 @@ export default class Dashboard extends Component<Props> {
             <span
               onClick={this.tabClick.bind(this, 1)}
               onKeyDown={this.accompaniedKeyEvent}
-              className={`${styles.category} ${tabIndex === 1 ? styles.active : ''}`}
+              className={`${styles.category} ${
+                tabIndex === 1 ? styles.active : ''
+              }`}
               role="button"
-              tabIndex={-1}>进行中</span>
+              tabIndex={-1}
+            >
+              进行中
+            </span>
             <span
               onClick={this.tabClick.bind(this, 2)}
               onKeyDown={this.accompaniedKeyEvent}
-              className={`${styles.category} ${tabIndex === 2 ? styles.active : ''}`}
+              className={`${styles.category} ${
+                tabIndex === 2 ? styles.active : ''
+              }`}
               role="button"
-              tabIndex={-1}>已完成</span>
-            <span onDoubleClick={this.saveTasks}
-                  className={`${debugBtnVisible ? styles.category : 'hidden'}`}>导出全部任务</span>
-            <span onDoubleClick={this.importTasks}
-                  className={`${debugBtnVisible ? styles.category : 'hidden'}`}>导入任务</span>
-            <div className={`${styles.actions} ${tabIndex === 2 ? 'hidden' : ''}`}>
-              <Button type="primary" ghost onClick={this.sortTask} style={{ marginRight: '24px' }}>
+              tabIndex={-1}
+            >
+              已完成
+            </span>
+            <span
+              onDoubleClick={this.saveTasks}
+              className={`${debugBtnVisible ? styles.category : 'hidden'}`}
+            >
+              导出全部任务
+            </span>
+            <span
+              onDoubleClick={this.importTasks}
+              className={`${debugBtnVisible ? styles.category : 'hidden'}`}
+            >
+              导入任务
+            </span>
+            <div
+              className={`${styles.actions} ${tabIndex === 2 ? 'hidden' : ''}`}
+            >
+              <Button
+                type="primary"
+                ghost
+                onClick={this.sortTask}
+                style={{ marginRight: '24px' }}
+              >
                 排序
-                <Icon type="swap"/>
+                <Icon type="swap" />
               </Button>
               <Button type="primary" ghost onClick={() => this.showModal()}>
                 添加
-                <Icon type="plus-square-o"/>
+                <Icon type="plus-square-o" />
               </Button>
             </div>
           </div>
@@ -512,4 +631,3 @@ export default class Dashboard extends Component<Props> {
     );
   }
 }
-
